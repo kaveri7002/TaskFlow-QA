@@ -76,6 +76,7 @@ def create_app(test_config=None):
     app.config.from_mapping(
         SECRET_KEY=configured_secret or "local-test-secret-change-before-deploying",
         SQLALCHEMY_DATABASE_URI=_database_url(),
+        SQLALCHEMY_ENGINE_OPTIONS={"pool_pre_ping": True},
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         TOKEN_MAX_AGE_SECONDS=int(os.getenv("TOKEN_MAX_AGE_SECONDS", "86400")),
         FRONTEND_DIST_DIR=str(ROOT_DIR / "frontend"),

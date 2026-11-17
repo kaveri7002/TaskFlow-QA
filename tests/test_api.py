@@ -13,6 +13,10 @@ def test_health_endpoint(client):
     assert response.json == {"status": "ok"}
 
 
+def test_database_pool_checks_connections_before_use(app):
+    assert app.config["SQLALCHEMY_ENGINE_OPTIONS"]["pool_pre_ping"] is True
+
+
 def test_production_requires_a_persistent_secret(monkeypatch):
     monkeypatch.delenv("SECRET_KEY", raising=False)
     monkeypatch.setenv("FLASK_DEBUG", "false")
