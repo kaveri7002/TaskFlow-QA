@@ -1,2 +1,4 @@
-// Leave blank for the local Flask app; set this to the Railway API origin on Vercel.
-window.TASKFLOW_API_URL = "";
+const localHosts = ["localhost", "127.0.0.1"];
+window.TASKFLOW_API_URL = localHosts.includes(window.location.hostname)
+  ? ""
+  : "https://taskflow-qa-api.onrender.com";
