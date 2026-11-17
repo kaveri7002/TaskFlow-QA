@@ -22,7 +22,7 @@ flowchart LR
     API --> ORM[SQLAlchemy ORM]
     ORM --> Local[(SQLite for local learning)]
     ORM --> Prod[(Railway PostgreSQL)]
-    CI[GitHub Actions] --> Tests[pytest + Selenium + Playwright]
+    CI[Optional GitHub Actions] --> Tests[pytest + Selenium + Playwright]
     Tests --> API
     Frontend[Vercel static frontend] -->|TASKFLOW_API_URL| API
 ```
@@ -208,7 +208,7 @@ Deployments need your Vercel, Railway, and GitHub accounts; this source setup do
 5. In Railway, include the final Vercel domain in `FRONTEND_ORIGINS` and redeploy/restart the API.
 6. Open the Vercel URL, register a test account, create a task, and verify it remains after refresh.
 
-The GitHub Actions workflow runs tests for pushes and pull requests. It uses a temporary PostgreSQL service, Chrome, and Playwright Chromium; browser logs and reports are uploaded as workflow artifacts.
+The repository includes a GitHub Actions workflow at `.github/workflows/tests.yml` that runs against PostgreSQL and Chromium, Firefox, and WebKit. GitHub requires an additional `workflow` authorization scope to push workflow files. If GitHub blocks that permission, the project can still be pushed without this one file; add it from a GitHub-authorized session later to enable CI.
 
 ## Local verification
 
