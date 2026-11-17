@@ -7,6 +7,26 @@ const statuses = [
 ];
 const state = { token: localStorage.getItem(STORAGE_KEY), user: null, tasks: [], search: '', priority: '' };
 const app = document.querySelector('#app');
+let installPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js').catch((error) => {
+    console.error('TaskFlow offline support could not be enabled.', error);
+  });
+}
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  installPrompt = event;
+  const installButton = document.querySelector('#install-app');
+  if (installButton) installButton.hidden = false;
+});
+
+window.addEventListener('appinstalled', () => {
+  installPrompt = null;
+  const installButton = document.querySelector('#install-app');
+  if (installButton) installButton.hidden = true;
+});
 
 function escapeHtml(value = '') {
   return String(value).replace(/[&<>"']/g, (character) => ({
@@ -134,7 +154,7 @@ function renderBoard() {
         </div>
       </aside>
       <main class="main-content">
-        <header class="topbar"><div class="breadcrumbs">Workspace <span>/</span> <strong>My board</strong></div><div class="topbar-right"><span class="online-dot"></span><span>All changes saved</span><button class="top-avatar account-settings" aria-label="Account settings">${escapeHtml(state.user.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase())}</button></div></header>
+        <header class="topbar"><div class="breadcrumbs">Workspace <span>/</span> <strong>My board</strong></div><div class="topbar-right"><span class="online-dot"></span><span>All changes saved</span><button class="install-button" id="install-app" type="button" hidden>Install app</button><button class="top-avatar account-settings" aria-label="Account settings">${escapeHtml(state.user.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase())}</button></div></header>
         <section class="board-content">
           <div class="welcome-row"><div><p class="eyebrow">MONDAY, LET'S MAKE IT COUNT</p><h1>Your work, <em>in flow.</em></h1><p class="muted">A clear view of what's moving and what comes next.</p></div><button class="button button-primary" id="new-task"><span>＋</span> New task</button></div>
           <div class="summary-row"><div class="summary-card"><span class="summary-icon icon-tasks">▤</span><div><strong>${state.tasks.length}</strong><span>Total tasks</span></div><span class="summary-trend">in your workspace</span></div><div class="summary-card"><span class="summary-icon icon-progress">↗</span><div><strong>${state.tasks.filter((task) => task.status === 'in_progress').length}</strong><span>In progress</span></div><span class="summary-trend">moving forward</span></div><div class="summary-card"><span class="summary-icon icon-done">✓</span><div><strong>${completed}</strong><span>Completed</span></div><span class="summary-trend">${state.tasks.length ? Math.round((completed / state.tasks.length) * 100) : 0}% of all tasks</span></div></div>
@@ -173,6 +193,15 @@ function showTaskDialog(task = null, status = 'todo') {
 function wireBoard() {
   app.querySelector('#logout').addEventListener('click', signOut);
   app.querySelectorAll('.account-settings').forEach((button) => button.addEventListener('click', showAccountDialog));
+  const installButton = app.querySelector('#install-app');
+  if (installPrompt) installButton.hidden = false;
+  installButton.addEventListener('click', async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = null;
+    installButton.hidden = true;
+  });
   app.querySelector('#new-task').addEventListener('click', () => showTaskDialog());
   app.querySelectorAll('[data-add-status]').forEach((button) => button.addEventListener('click', () => showTaskDialog(null, button.dataset.addStatus)));
   app.querySelectorAll('[data-edit]').forEach((button) => button.addEventListener('click', () => showTaskDialog(state.tasks.find((task) => task.id === Number(button.dataset.edit)))));

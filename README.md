@@ -11,6 +11,7 @@ TaskFlow QA is a small, full-stack project and task management app with a Trello
 - Move tasks among To do, In progress, and Completed, including by drag-and-drop.
 - Set a priority and optional due date.
 - REST API with validation, JSON errors, expiring signed bearer tokens, and per-user access checks.
+- Installable progressive web app (PWA) with an app icon, standalone display, offline app shell, and an in-app install button on supported browsers.
 - PostgreSQL support for deployment; SQLite is used by default for a simple local start.
 - Pytest API tests, Selenium browser tests, Playwright browser/API tests, HTML reports, optional Allure results, and CI.
 
@@ -91,6 +92,10 @@ python -m backend.app
 ```
 
 The app and API listen at `http://localhost:5000`; the health check is `http://localhost:5000/api/health`. Open the app in a browser and register an account. There is no default shared login.
+
+## Install on a phone
+
+Open the deployed TaskFlow QA website in a supported mobile browser while online. On Android/Chrome, tap **Install app** when it appears, or use the browser menu and choose **Install app** or **Add to Home screen**. On iPhone/iPad, open the website in Safari, tap **Share**, then **Add to Home Screen**. Launch TaskFlow QA from its new home-screen icon. Sign in with the same account; tasks and account changes still require an internet connection and are saved to the hosted service.
 
 ## Run automated tests
 

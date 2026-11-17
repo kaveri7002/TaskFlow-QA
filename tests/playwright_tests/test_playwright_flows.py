@@ -1,3 +1,4 @@
+import json
 import uuid
 
 import pytest
@@ -53,6 +54,34 @@ def test_validation_and_responsive_layout(playwright_page):
     assert page.get_by_label("Email address").evaluate("(element) => element.validity.valid") is False
     assert page.get_by_label("Password").evaluate("(element) => element.validity.valid") is False
     assert page.locator("body").evaluate("(element) => element.scrollWidth <= window.innerWidth")
+
+
+@pytest.mark.playwright
+def test_installable_app_manifest_icons_and_service_worker(playwright_page):
+    page = playwright_page
+    manifest_result = page.evaluate("""async () => {
+      const response = await fetch('/manifest.json');
+      return { status: response.status, manifest: await response.json() };
+    }""")
+    assert manifest_result["status"] == 200
+    manifest = manifest_result["manifest"]
+    assert manifest["name"] == "TaskFlow QA"
+    assert manifest["display"] == "standalone"
+    assert {icon["sizes"] for icon in manifest["icons"] if icon["type"] == "image/png"} >= {"192x192", "512x512"}
+
+    asset_statuses = page.evaluate("""async () => Promise.all([
+      '/icons/taskflow-180.png',
+      '/icons/taskflow-192.png',
+      '/icons/taskflow-512.png',
+      '/service-worker.js',
+    ].map(async (path) => (await fetch(path)).status))""")
+    assert asset_statuses == [200, 200, 200, 200]
+
+    page.wait_for_function("navigator.serviceWorker && navigator.serviceWorker.controller")
+    assert page.evaluate("navigator.serviceWorker.controller.scriptURL").endswith("/service-worker.js")
+    page.context.set_offline(True)
+    page.reload()
+    page.get_by_role("heading", name="Sign in to your space").wait_for()
 
 
 @pytest.mark.playwright
