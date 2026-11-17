@@ -129,12 +129,12 @@ function renderBoard() {
         <div class="workspace-label">WORKSPACE</div>
         <button class="side-link selected"><span class="side-icon">▦</span> My board <span class="side-count">${state.tasks.length}</span></button>
         <div class="sidebar-bottom"><div class="upgrade-card"><span class="sparkle">✳</span><strong>Good work, in motion.</strong><p>Keep your team aligned and your quality high.</p></div>
-          <button class="profile-button"><span class="profile-avatar">${escapeHtml(state.user.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase())}</span><span class="profile-copy"><strong>${escapeHtml(state.user.name)}</strong><small>${escapeHtml(state.user.email)}</small></span><span class="profile-menu">···</span></button>
+          <button class="profile-button account-settings" aria-label="Account settings"><span class="profile-avatar">${escapeHtml(state.user.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase())}</span><span class="profile-copy"><strong>${escapeHtml(state.user.name)}</strong><small>${escapeHtml(state.user.email)}</small></span><span class="profile-menu">···</span></button>
           <button class="logout-button" id="logout">Sign out</button>
         </div>
       </aside>
       <main class="main-content">
-        <header class="topbar"><div class="breadcrumbs">Workspace <span>/</span> <strong>My board</strong></div><div class="topbar-right"><span class="online-dot"></span><span>All changes saved</span><span class="top-avatar">${escapeHtml(state.user.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase())}</span></div></header>
+        <header class="topbar"><div class="breadcrumbs">Workspace <span>/</span> <strong>My board</strong></div><div class="topbar-right"><span class="online-dot"></span><span>All changes saved</span><button class="top-avatar account-settings" aria-label="Account settings">${escapeHtml(state.user.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase())}</button></div></header>
         <section class="board-content">
           <div class="welcome-row"><div><p class="eyebrow">MONDAY, LET'S MAKE IT COUNT</p><h1>Your work, <em>in flow.</em></h1><p class="muted">A clear view of what's moving and what comes next.</p></div><button class="button button-primary" id="new-task"><span>＋</span> New task</button></div>
           <div class="summary-row"><div class="summary-card"><span class="summary-icon icon-tasks">▤</span><div><strong>${state.tasks.length}</strong><span>Total tasks</span></div><span class="summary-trend">in your workspace</span></div><div class="summary-card"><span class="summary-icon icon-progress">↗</span><div><strong>${state.tasks.filter((task) => task.status === 'in_progress').length}</strong><span>In progress</span></div><span class="summary-trend">moving forward</span></div><div class="summary-card"><span class="summary-icon icon-done">✓</span><div><strong>${completed}</strong><span>Completed</span></div><span class="summary-trend">${state.tasks.length ? Math.round((completed / state.tasks.length) * 100) : 0}% of all tasks</span></div></div>
@@ -149,6 +149,7 @@ function renderBoard() {
         </section>
       </main>
       <dialog id="task-dialog" class="task-dialog"><form id="task-form" method="dialog"><div class="dialog-heading"><div><p class="eyebrow">TASK DETAILS</p><h2 id="dialog-title">Create a task</h2></div><button type="button" class="icon-button dialog-close" aria-label="Close dialog">×</button></div><input type="hidden" name="id"><label>Task name<input name="title" maxlength="160" placeholder="e.g. Test checkout flow" required></label><label>Description <span class="optional">(optional)</span><textarea name="description" maxlength="2000" rows="3" placeholder="What needs to be done?"></textarea></label><div class="dialog-grid"><label>Status<select name="status"><option value="todo">To do</option><option value="in_progress">In progress</option><option value="completed">Completed</option></select></label><label>Priority<select name="priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></label></div><label>Due date <span class="optional">(optional)</span><input name="due_date" type="date"></label><p class="form-message" role="alert"></p><div class="dialog-actions"><button type="button" class="button button-quiet dialog-cancel">Cancel</button><button type="submit" class="button button-primary">Save task <span>→</span></button></div></form></dialog>
+      <dialog id="account-dialog" class="task-dialog settings-dialog"><form id="account-form"><div class="dialog-heading"><div><p class="eyebrow">ACCOUNT SETTINGS</p><h2>Change email or password</h2></div><button type="button" class="icon-button account-dialog-close" aria-label="Close account settings">×</button></div><p class="muted">Enter your current password to confirm any changes.</p><label>New email address <span class="optional">(optional)</span><input name="email" type="email" maxlength="254" autocomplete="email" placeholder="${escapeHtml(state.user.email)}"></label><label>New password <span class="optional">(optional)</span><input name="password" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="At least 8 characters"></label><label>Current password<input name="current_password" type="password" required autocomplete="current-password"></label><p class="form-message" role="alert" aria-live="polite"></p><div class="dialog-actions"><button type="button" class="button button-quiet account-dialog-cancel">Cancel</button><button type="submit" class="button button-primary">Save changes <span>→</span></button></div></form></dialog>
     </div>`;
   wireBoard();
 }
@@ -171,6 +172,7 @@ function showTaskDialog(task = null, status = 'todo') {
 
 function wireBoard() {
   app.querySelector('#logout').addEventListener('click', signOut);
+  app.querySelectorAll('.account-settings').forEach((button) => button.addEventListener('click', showAccountDialog));
   app.querySelector('#new-task').addEventListener('click', () => showTaskDialog());
   app.querySelectorAll('[data-add-status]').forEach((button) => button.addEventListener('click', () => showTaskDialog(null, button.dataset.addStatus)));
   app.querySelectorAll('[data-edit]').forEach((button) => button.addEventListener('click', () => showTaskDialog(state.tasks.find((task) => task.id === Number(button.dataset.edit)))));
@@ -190,6 +192,9 @@ function wireBoard() {
   app.querySelector('.dialog-close').addEventListener('click', () => app.querySelector('#task-dialog').close());
   app.querySelector('.dialog-cancel').addEventListener('click', () => app.querySelector('#task-dialog').close());
   app.querySelector('#task-form').addEventListener('submit', saveTask);
+  app.querySelector('#account-form').addEventListener('submit', saveAccount);
+  app.querySelector('.account-dialog-close').addEventListener('click', () => app.querySelector('#account-dialog').close());
+  app.querySelector('.account-dialog-cancel').addEventListener('click', () => app.querySelector('#account-dialog').close());
   app.querySelectorAll('.task-card').forEach((card) => {
     card.addEventListener('dragstart', (event) => {
       event.dataTransfer.setData('text/plain', card.dataset.taskId);
@@ -223,6 +228,52 @@ function wireBoard() {
   app.querySelector('.search-box kbd').addEventListener('click', () => app.querySelector('#search').focus());
   window.removeEventListener('keydown', handleShortcut);
   window.addEventListener('keydown', handleShortcut);
+}
+
+function showAccountDialog() {
+  const dialog = app.querySelector('#account-dialog');
+  const form = app.querySelector('#account-form');
+  form.reset();
+  form.elements.email.placeholder = state.user.email;
+  form.querySelector('.form-message').textContent = '';
+  form.querySelector('.form-message').classList.remove('success-message');
+  dialog.showModal();
+  form.elements.email.focus();
+}
+
+async function saveAccount(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const message = form.querySelector('.form-message');
+  const submit = form.querySelector('button[type="submit"]');
+  const email = form.elements.email.value.trim();
+  const password = form.elements.password.value;
+  if (!email && !password) {
+    message.textContent = 'Enter a new email address or password.';
+    return;
+  }
+
+  const payload = { current_password: form.elements.current_password.value };
+  if (email) payload.email = email;
+  if (password) payload.password = password;
+  submit.disabled = true;
+  message.textContent = '';
+  message.classList.remove('success-message');
+  try {
+    const result = await api('/auth/account', { method: 'PATCH', body: JSON.stringify(payload) });
+    state.user = result.user;
+    form.elements.email.value = '';
+    form.elements.email.placeholder = state.user.email;
+    form.elements.password.value = '';
+    form.elements.current_password.value = '';
+    message.textContent = 'Your account details have been updated.';
+    message.classList.add('success-message');
+    app.querySelector('.profile-copy small').textContent = state.user.email;
+  } catch (error) {
+    message.textContent = error.message;
+  } finally {
+    submit.disabled = false;
+  }
 }
 
 function handleShortcut(event) {

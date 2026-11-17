@@ -9,6 +9,7 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 load_dotenv()
@@ -194,6 +195,49 @@ def create_app(test_config=None):
         user, error = require_user()
         if error:
             return error
+        return jsonify({"user": {"id": user.id, "name": user.name, "email": user.email}})
+
+    @app.patch("/api/auth/account")
+    def update_account():
+        user, error = require_user()
+        if error:
+            return error
+        payload, error = json_object()
+        if error:
+            return error
+        if set(payload) - {"current_password", "email", "password"}:
+            return jsonify({"error": "Only email and password can be changed here."}), 400
+        if not payload.get("email") and not payload.get("password"):
+            return jsonify({"error": "Enter a new email address or password."}), 400
+
+        current_password = payload.get("current_password")
+        if not isinstance(current_password, str) or not check_password_hash(user.password_hash, current_password):
+            return jsonify({"error": "Current password is incorrect."}), 403
+
+        email = None
+        if "email" in payload:
+            email = payload["email"].strip().lower() if isinstance(payload["email"], str) else ""
+            if len(email) > 254 or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+                return jsonify({"error": "Enter a valid email address."}), 400
+            existing_user = User.query.filter(User.email == email, User.id != user.id).first()
+            if existing_user:
+                return jsonify({"error": "An account with that email already exists."}), 409
+
+        password = payload.get("password")
+        if "password" in payload and (
+            not isinstance(password, str) or len(password) < 8 or len(password) > 128
+        ):
+            return jsonify({"error": "New password must be between 8 and 128 characters."}), 400
+
+        if email is not None:
+            user.email = email
+        if password is not None:
+            user.password_hash = generate_password_hash(password)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            return jsonify({"error": "An account with that email already exists."}), 409
         return jsonify({"user": {"id": user.id, "name": user.name, "email": user.email}})
 
     @app.get("/api/tasks")

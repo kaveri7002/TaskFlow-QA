@@ -6,7 +6,7 @@ TaskFlow QA is a small, full-stack project and task management app with a Trello
 
 ## What is included
 
-- Register and sign in; passwords are stored as secure hashes, never as plain text.
+- Register and sign in; change your account email or password after confirming your current password. Passwords are stored as secure hashes, never as plain text.
 - Create, edit, delete, search, and filter tasks by priority.
 - Move tasks among To do, In progress, and Completed, including by drag-and-drop.
 - Set a priority and optional due date.

@@ -56,6 +56,35 @@ def test_validation_and_responsive_layout(playwright_page):
 
 
 @pytest.mark.playwright
+def test_account_email_and_password_can_be_changed_in_settings(playwright_page):
+    page = playwright_page
+    create_account(page)
+    new_email = f"updated-{uuid.uuid4().hex[:8]}@example.com"
+
+    page.get_by_role("button", name="Account settings").last.click()
+    dialog = page.locator("#account-dialog")
+    dialog.get_by_label("New email address").fill(new_email)
+    dialog.get_by_label("New password").fill("UpdatedPassword456")
+    dialog.get_by_label("Current password").fill("WrongPassword123")
+    with page.expect_response(lambda response: response.request.method == "PATCH" and "/api/auth/account" in response.url):
+        dialog.get_by_role("button", name="Save changes").click()
+    dialog.get_by_text("Current password is incorrect.").wait_for()
+
+    dialog.get_by_label("Current password").fill("PlaywrightPass123")
+    with page.expect_response(lambda response: response.request.method == "PATCH" and "/api/auth/account" in response.url):
+        dialog.get_by_role("button", name="Save changes").click()
+    dialog.get_by_text("Your account details have been updated.").wait_for()
+    page.get_by_text(new_email).wait_for()
+
+    dialog.get_by_role("button", name="Close account settings").click()
+    page.get_by_role("button", name="Sign out").click()
+    page.get_by_label("Email address").fill(new_email)
+    page.get_by_label("Password").fill("UpdatedPassword456")
+    page.get_by_role("button", name="Sign in").last.click()
+    page.get_by_role("heading", name="Your work, in flow.").wait_for()
+
+
+@pytest.mark.playwright
 def test_api_can_register_and_authenticate_multiple_users(playwright_request):
     request = playwright_request
     first_email = f"api-{uuid.uuid4().hex[:8]}@example.com"
