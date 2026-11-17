@@ -186,30 +186,34 @@ git push -u origin main
 
 Never commit `.env`, passwords, tokens, database files, or test screenshots containing private information. Review `git status` before every push.
 
-## Deploy (after local tests)
+## Free-tier deployment (demo use)
 
-Deployments need your Vercel, Railway, and GitHub accounts; this source setup does not grant those account permissions automatically.
+The following setup uses the free plans from Render, Neon, and Vercel. Free-tier limits and provider terms can change; confirm each dashboard still shows a free plan before creating resources. Render's free API service sleeps after inactivity and its local filesystem is temporary, so the database must be PostgreSQL on Neon—not SQLite on Render. This is suitable for a demo, not production.
 
-### Railway API and PostgreSQL
+### 1. Create a Neon database
 
-1. Push the repository to GitHub and connect it to Railway.
-2. Add a Railway PostgreSQL service.
-3. Configure the web service to use the project root (where `requirements.txt` is) and `backend/railway.json`.
-4. Set `DATABASE_URL` to Railway's PostgreSQL connection URL.
-5. Set `SECRET_KEY` to a new, long random secret, `FRONTEND_ORIGINS` to the Vercel site URL, and `TOKEN_MAX_AGE_SECONDS` to `86400`.
-6. Deploy and verify `https://YOUR-RAILWAY-DOMAIN/api/health` returns `{"status":"ok"}`.
+1. Sign up at [Neon](https://neon.tech/) and create a project on its **Free** plan.
+2. In the Neon dashboard, copy the PostgreSQL connection string. Keep it private; do not put it in this repository or send it in chat.
 
-### Vercel frontend
+### 2. Deploy the API to Render
 
-1. Import the same GitHub repository into Vercel.
-2. Set the **Root Directory** to `frontend`.
-3. Set the framework preset to **Other**, output directory to `.`, and leave the build command empty.
-4. Before deployment, edit `TASKFLOW_API_URL` in `frontend/config.js` to `https://YOUR-RAILWAY-DOMAIN`.
-5. In Railway, include the final Vercel domain in `FRONTEND_ORIGINS` and redeploy/restart the API.
-6. Open the Vercel URL, register a test account, create a task, and verify it remains after refresh.
+1. Push the repository to GitHub, then sign in to [Render](https://render.com/).
+2. Create a **Blueprint** from the `TaskFlow-QA` GitHub repository and approve the `render.yaml` configuration. It declares a **Free** web service, generates a `SECRET_KEY`, and asks you to provide `DATABASE_URL` and `FRONTEND_ORIGINS`.
+3. Paste the Neon connection string into Render's `DATABASE_URL` environment variable field. Initially set `FRONTEND_ORIGINS` to `https://taskflow-qa.vercel.app` (no trailing slash); update it to Vercel's exact assigned origin if that differs.
+4. Deploy the service and wait for its health check. Verify `https://YOUR-RENDER-DOMAIN/api/health` returns `{"status":"ok"}`.
+
+### 3. Deploy the frontend to Vercel
+
+1. Import the same GitHub repository into [Vercel](https://vercel.com/) using its **Hobby** plan.
+2. Set the **Root Directory** to `frontend`, the framework preset to **Other**, and the output directory to `.`. Leave the build command empty.
+3. Set `TASKFLOW_API_URL` in `frontend/config.js` to the Render API origin, such as `https://YOUR-RENDER-DOMAIN` (no trailing slash), then push that change so Vercel redeploys.
+4. Confirm Render's `FRONTEND_ORIGINS` exactly matches the Vercel site origin and redeploy/restart the API if you changed it.
+5. Open the Vercel URL, register a test account, create a task, refresh, and verify the task remains saved.
+
+Never enter payment details or select a paid upgrade if you want to keep this at $0. Monitor each provider's usage and free-tier limits; if a provider requires a payment method or offers only a paid choice, stop before confirming.
 
 The repository includes a GitHub Actions workflow at `.github/workflows/tests.yml` that runs against PostgreSQL and Chromium, Firefox, and WebKit. GitHub requires an additional `workflow` authorization scope to push workflow files. If GitHub blocks that permission, the project can still be pushed without this one file; add it from a GitHub-authorized session later to enable CI.
 
 ## Local verification
 
-The local command `python -m pytest --alluredir=allure-results -q` passed **12 tests**: 7 API/database tests, 2 Selenium browser tests, and 3 Playwright Chromium tests. A separate Playwright run passed Chromium and Firefox flows; WebKit was skipped because this Windows host is missing its required libraries. Local runs use SQLite. PostgreSQL-backed CI and Vercel/Railway deployment still need to run with your GitHub and hosting accounts; they are not claimed as deployed or verified.
+The local command `python -m pytest --alluredir=allure-results -q` passed **12 tests**: 7 API/database tests, 2 Selenium browser tests, and 3 Playwright Chromium tests. A separate Playwright run passed Chromium and Firefox flows; WebKit was skipped because this Windows host is missing its required libraries. Local runs use SQLite. PostgreSQL-backed CI and Vercel/Render/Neon deployment still need to run with your GitHub and hosting accounts; they are not claimed as deployed or verified.
